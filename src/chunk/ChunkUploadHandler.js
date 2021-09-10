@@ -146,6 +146,27 @@ export default class ChunkUploadHandler {
   }
 
   /**
+   * Gets on upload start callback
+   */
+  get onUploadStart() {
+    return this.options.onUploadStart
+  }
+
+  /**
+   * Gets on upload progress callback
+   */
+  get onUploadProgress() {
+    return this.options.onUploadProgress
+  }
+
+  /**
+   * Gets on upload finished callback
+   */
+  get onUploadFinished() {
+    return this.options.onUploadFinished
+  }
+
+  /**
    * Creates all the chunks in the initial state
    */
   createChunks() {
@@ -170,6 +191,7 @@ export default class ChunkUploadHandler {
    */
   updateFileProgress() {
     this.file.progress = this.progress
+    this.onUploadProgress(this.file)
   }
 
   /**
@@ -226,19 +248,28 @@ export default class ChunkUploadHandler {
    * Sends a request to the backend to initialise the chunks
    */
   start() {
+    let ub = {}
+    if (typeof this.startBody === 'function') {
+      ub = this.startBody(this.file)
+    } else {
+      ub = this.startBody
+    }
+    console.log(ub)
+    this.onUploadStart(this.file)
     request({
       method: 'POST',
       headers: Object.assign({}, this.headers, {
         'Content-Type': 'application/json'
       }),
       url: this.action,
-      body: Object.assign(this.startBody, {
+      body: Object.assign(ub, {
         phase: 'start',
         mime_type: this.fileType,
         size: this.fileSize,
         name: this.fileName
       })
     }).then(res => {
+      console.log(res)
       if (res.status !== 'success') {
         this.file.response = res
         return this.reject('server')
@@ -250,6 +281,7 @@ export default class ChunkUploadHandler {
       this.createChunks()
       this.startChunking()
     }).catch(res => {
+      console.log(res)
       this.file.response = res
       this.reject('server')
     })
@@ -308,7 +340,13 @@ export default class ChunkUploadHandler {
       }
     }, false)
 
-    sendFormRequest(chunk.xhr, Object.assign(this.uploadBody, {
+    let ub = {}
+    if (typeof this.uploadBody === 'function') {
+      ub = this.uploadBody(this.file, chunk)
+    } else {
+      ub = this.uploadBody
+    }
+    sendFormRequest(chunk.xhr, Object.assign(ub, {
       phase: 'upload',
       session_id: this.sessionId,
       start_offset: chunk.startOffset,
@@ -361,6 +399,7 @@ export default class ChunkUploadHandler {
       }
 
       this.resolve(res)
+      this.onUploadFinished(this.file)
     }).catch(res => {
       this.file.response = res
       this.reject('server')

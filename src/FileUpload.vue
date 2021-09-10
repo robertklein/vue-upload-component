@@ -48,7 +48,10 @@ const CHUNK_DEFAULT_OPTIONS = {
   maxActive: 3,
   maxRetries: 5,
 
-  handler: ChunkUploadDefaultHandler
+  handler: ChunkUploadDefaultHandler,
+  onUploadStart: () => {},
+  onUploadProgress: () => {},
+  onUploadFinished: () => {},
 }
 
 export default {

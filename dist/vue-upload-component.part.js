@@ -1,7 +1,7 @@
 /*!
  * Name: vue-upload-component
- * Version: 2.8.21
- * Author: Marco Lang
+ * Version: 2.8.22
+ * Author: LianYue
  */
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
@@ -160,6 +160,7 @@
       key: 'updateFileProgress',
       value: function updateFileProgress() {
         this.file.progress = this.progress;
+        this.onUploadProgress(this.file);
       }
 
       /**
@@ -235,19 +236,28 @@
       value: function start() {
         var _this2 = this;
 
+        var ub = {};
+        if (typeof this.startBody === 'function') {
+          ub = this.startBody(this.file);
+        } else {
+          ub = this.startBody;
+        }
+        console.log(ub);
+        this.onUploadStart(this.file);
         request({
           method: 'POST',
           headers: Object.assign({}, this.headers, {
             'Content-Type': 'application/json'
           }),
           url: this.action,
-          body: Object.assign(this.startBody, {
+          body: Object.assign(ub, {
             phase: 'start',
             mime_type: this.fileType,
             size: this.fileSize,
             name: this.fileName
           })
         }).then(function (res) {
+          console.log(res);
           if (res.status !== 'success') {
             _this2.file.response = res;
             return _this2.reject('server');
@@ -259,6 +269,7 @@
           _this2.createChunks();
           _this2.startChunking();
         }).catch(function (res) {
+          console.log(res);
           _this2.file.response = res;
           _this2.reject('server');
         });
@@ -328,7 +339,13 @@
           }
         }, false);
 
-        sendFormRequest(chunk.xhr, Object.assign(this.uploadBody, {
+        var ub = {};
+        if (typeof this.uploadBody === 'function') {
+          ub = this.uploadBody(this.file, chunk);
+        } else {
+          ub = this.uploadBody;
+        }
+        sendFormRequest(chunk.xhr, Object.assign(ub, {
           phase: 'upload',
           session_id: this.sessionId,
           start_offset: chunk.startOffset,
@@ -386,6 +403,7 @@
           }
 
           _this4.resolve(res);
+          _this4.onUploadFinished(_this4.file);
         }).catch(function (res) {
           _this4.file.response = res;
           _this4.reject('server');
@@ -594,6 +612,36 @@
           return !!chunk.uploaded;
         });
       }
+
+      /**
+       * Gets on upload start callback
+       */
+
+    }, {
+      key: 'onUploadStart',
+      get: function get() {
+        return this.options.onUploadStart;
+      }
+
+      /**
+       * Gets on upload progress callback
+       */
+
+    }, {
+      key: 'onUploadProgress',
+      get: function get() {
+        return this.options.onUploadProgress;
+      }
+
+      /**
+       * Gets on upload finished callback
+       */
+
+    }, {
+      key: 'onUploadFinished',
+      get: function get() {
+        return this.options.onUploadFinished;
+      }
     }]);
 
     return ChunkUploadHandler;
@@ -758,7 +806,10 @@
     maxActive: 3,
     maxRetries: 5,
 
-    handler: ChunkUploadHandler
+    handler: ChunkUploadHandler,
+    onUploadStart: function onUploadStart() {},
+    onUploadProgress: function onUploadProgress() {},
+    onUploadFinished: function onUploadFinished() {}
   };
 
   var script$1 = {
