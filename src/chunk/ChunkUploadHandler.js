@@ -254,7 +254,6 @@ export default class ChunkUploadHandler {
     } else {
       ub = this.startBody
     }
-    console.log(ub)
     this.onUploadStart(this.file)
     request({
       method: 'POST',
@@ -269,7 +268,6 @@ export default class ChunkUploadHandler {
         name: this.fileName
       })
     }).then(res => {
-      console.log(res)
       if (res.status !== 'success') {
         this.file.response = res
         return this.reject('server')
@@ -281,7 +279,6 @@ export default class ChunkUploadHandler {
       this.createChunks()
       this.startChunking()
     }).catch(res => {
-      console.log(res)
       this.file.response = res
       this.reject('server')
     })
